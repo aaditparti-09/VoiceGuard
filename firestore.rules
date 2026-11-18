@@ -1,0 +1,317 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'fullName', 'email', 'createdAt', 'lastLogin'])
+        && data.keys().hasOnly([
+          'uid',
+          'fullName',
+          'email',
+          'photoURL',
+          'emailAlerts',
+          'highRiskAlerts',
+          'themePreference',
+          'createdAt',
+          'lastLogin'
+        ])
+        && data.uid is string
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && isValidId(data.uid)
+        && data.fullName is string
+        && data.fullName.size() >= 1
+        && data.fullName.size() <= 120
+        && data.email is string
+        && data.email.size() >= 3
+        && data.email.size() <= 200
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!('emailAlerts' in data) || data.emailAlerts is bool)
+        && (!('highRiskAlerts' in data) || data.highRiskAlerts is bool)
+        && (!('themePreference' in data) || data.themePreference in ['dark', 'midnight'])
+        && data.createdAt is timestamp
+        && data.lastLogin is timestamp;
+    }
+
+    function isValidExtractedFeatures(features) {
+      return features is map
+        && features.keys().hasAll([
+          'rmsEnergy',
+          'zeroCrossingRate',
+          'spectralCentroid',
+          'spectralBandwidth',
+          'spectralRolloff',
+          'sampleRate',
+          'peakFrequency'
+        ])
+        && features.keys().hasOnly([
+          'rmsEnergy',
+          'zeroCrossingRate',
+          'spectralCentroid',
+          'spectralBandwidth',
+          'spectralRolloff',
+          'pitchVariance',
+          'silenceRatio',
+          'dynamicRange',
+          'sampleRate',
+          'peakFrequency',
+          'frequencyBands'
+        ])
+        && features.rmsEnergy is number
+        && features.zeroCrossingRate is number
+        && features.spectralCentroid is number
+        && features.spectralBandwidth is number
+        && features.spectralRolloff is number
+        && features.sampleRate is number
+        && features.peakFrequency is number
+        && (!('pitchVariance' in features) || features.pitchVariance is number)
+        && (!('silenceRatio' in features) || features.silenceRatio is number)
+        && (!('dynamicRange' in features) || features.dynamicRange is number)
+        && (!('frequencyBands' in features) || (
+          features.frequencyBands is list
+          && features.frequencyBands.size() <= 16
+          && (features.frequencyBands.size() == 0 || features.frequencyBands[0] is map)
+        ));
+    }
+
+    function isValidDetection(data, userId) {
+      return data.keys().hasAll([
+          'userId',
+          'fileName',
+          'fileType',
+          'fileSize',
+          'duration',
+          'sourceType',
+          'classification',
+          'riskScore',
+          'analysisMode',
+          'modelStatus',
+          'extractedFeatures',
+          'explanation',
+          'recommendations',
+          'isSavedReport',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId',
+          'fileName',
+          'fileType',
+          'fileSize',
+          'duration',
+          'sourceType',
+          'language',
+          'classification',
+          'riskLevel',
+          'riskScore',
+          'authenticityScore',
+          'confidence',
+          'analysisMode',
+          'modelStatus',
+          'extractedFeatures',
+          'waveformPreview',
+          'spectrumPreview',
+          'explanation',
+          'recommendations',
+          'isSavedReport',
+          'createdAt'
+        ])
+        && data.userId is string
+        && data.userId == userId
+        && data.userId == request.auth.uid
+        && isValidId(data.userId)
+        && data.fileName is string
+        && data.fileName.size() >= 1
+        && data.fileName.size() <= 200
+        && data.fileType is string
+        && data.fileType.size() >= 1
+        && data.fileType.size() <= 64
+        && data.fileSize is number
+        && data.fileSize >= 0
+        && data.fileSize <= 52428800
+        && data.duration is number
+        && data.duration >= 0
+        && data.duration <= 3600
+        && data.sourceType in ['upload', 'live_recording']
+        && (!('language' in data) || data.language in ['English', 'Hindi', 'Marathi', 'Gujarati', 'Tamil', 'Bengali', 'Telugu', 'Punjabi'])
+        && data.classification in [
+          'Authentic Voice',
+          'Suspicious Voice',
+          'Potential AI-Generated Voice',
+          'High-Risk Voice',
+          'GENUINE',
+          'SUSPICIOUS',
+          'HIGH RISK'
+        ]
+        && (!('riskLevel' in data) || data.riskLevel in ['Low Risk', 'Medium Risk', 'High Risk', 'Critical Risk'])
+        && data.riskScore is number
+        && data.riskScore >= 0
+        && data.riskScore <= 100
+        && (!('authenticityScore' in data) || (data.authenticityScore is number && data.authenticityScore >= 0 && data.authenticityScore <= 100))
+        && (!('confidence' in data) || data.confidence == null || (data.confidence is number && data.confidence >= 0 && data.confidence <= 100))
+        && data.analysisMode in ['experimental_signal_analysis', 'external_model_inference']
+        && data.modelStatus is string
+        && data.modelStatus.size() >= 1
+        && data.modelStatus.size() <= 160
+        && isValidExtractedFeatures(data.extractedFeatures)
+        && (!('waveformPreview' in data) || (data.waveformPreview is list && data.waveformPreview.size() <= 64 && (data.waveformPreview.size() == 0 || data.waveformPreview[0] is number)))
+        && (!('spectrumPreview' in data) || (data.spectrumPreview is list && data.spectrumPreview.size() <= 32 && (data.spectrumPreview.size() == 0 || data.spectrumPreview[0] is number)))
+        && data.explanation is string
+        && data.explanation.size() >= 1
+        && data.explanation.size() <= 2000
+        && data.recommendations is list
+        && data.recommendations.size() >= 1
+        && data.recommendations.size() <= 10
+        && data.recommendations[0] is string
+        && data.isSavedReport is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAlert(data, userId) {
+      return data.keys().hasAll([
+          'userId',
+          'title',
+          'message',
+          'severity',
+          'detectionId',
+          'isRead',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId',
+          'title',
+          'message',
+          'severity',
+          'riskLevel',
+          'status',
+          'investigationNotes',
+          'detectionId',
+          'fileName',
+          'riskScore',
+          'isRead',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.userId is string
+        && data.userId == userId
+        && data.userId == request.auth.uid
+        && isValidId(data.userId)
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 160
+        && data.message is string
+        && data.message.size() >= 1
+        && data.message.size() <= 1000
+        && data.severity in ['low', 'medium', 'high', 'critical']
+        && (!('riskLevel' in data) || data.riskLevel in ['Low Risk', 'Medium Risk', 'High Risk', 'Critical Risk'])
+        && (!('status' in data) || data.status in ['open', 'under_investigation', 'resolved'])
+        && (!('investigationNotes' in data) || (data.investigationNotes is string && data.investigationNotes.size() <= 2000))
+        && isValidId(data.detectionId)
+        && (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 200))
+        && (!('riskScore' in data) || (data.riskScore is number && data.riskScore >= 0 && data.riskScore <= 100))
+        && data.isRead is bool
+        && data.createdAt is timestamp
+        && (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().lastLogin == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['lastLogin']) && incoming().lastLogin == request.time ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'photoURL', 'emailAlerts', 'highRiskAlerts', 'themePreference', 'lastLogin']) && incoming().lastLogin == request.time ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'photoURL']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['emailAlerts', 'highRiskAlerts', 'themePreference'])
+        );
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      match /detections/{detectionId} {
+        allow get: if isValidId(userId) && isValidId(detectionId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(detectionId)
+          && isVerifiedOwner(userId)
+          && isValidDetection(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isValidId(userId)
+          && isValidId(detectionId)
+          && isVerifiedOwner(userId)
+          && isValidDetection(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['isSavedReport']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['language'])
+          );
+        allow delete: if isValidId(userId) && isValidId(detectionId) && isOwner(userId);
+      }
+
+      match /alerts/{alertId} {
+        allow get: if isValidId(userId) && isValidId(alertId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(alertId)
+          && isVerifiedOwner(userId)
+          && isValidAlert(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isValidId(userId)
+          && isValidId(alertId)
+          && isVerifiedOwner(userId)
+          && isValidAlert(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['isRead']) ||
+            (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'isRead', 'updatedAt']) && incoming().updatedAt == request.time) ||
+            (incoming().diff(existing()).affectedKeys().hasOnly(['investigationNotes', 'updatedAt']) && incoming().updatedAt == request.time) ||
+            (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'investigationNotes', 'isRead', 'updatedAt']) && incoming().updatedAt == request.time)
+          );
+        allow delete: if isValidId(userId) && isValidId(alertId) && isOwner(userId);
+      }
+    }
+  }
+}

@@ -1,0 +1,255 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and security preferences for VoiceGuard AI",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "emailAlerts": {
+          "type": "boolean"
+        },
+        "highRiskAlerts": {
+          "type": "boolean"
+        },
+        "themePreference": {
+          "type": "string",
+          "enum": ["dark", "midnight"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastLogin": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "fullName", "email", "createdAt", "lastLogin"]
+    },
+    "VoiceDetection": {
+      "title": "VoiceDetection",
+      "description": "Audio analysis and voice deepfake risk assessment record",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "fileType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "fileSize": {
+          "type": "number"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["upload", "live_recording"]
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "English",
+            "Hindi",
+            "Marathi",
+            "Gujarati",
+            "Tamil",
+            "Bengali",
+            "Telugu",
+            "Punjabi"
+          ]
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "Authentic Voice",
+            "Suspicious Voice",
+            "Potential AI-Generated Voice",
+            "High-Risk Voice",
+            "GENUINE",
+            "SUSPICIOUS",
+            "HIGH RISK"
+          ]
+        },
+        "riskLevel": {
+          "type": "string",
+          "enum": ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]
+        },
+        "riskScore": {
+          "type": "number"
+        },
+        "authenticityScore": {
+          "type": "number"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "analysisMode": {
+          "type": "string",
+          "enum": ["experimental_signal_analysis", "external_model_inference"]
+        },
+        "modelStatus": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "extractedFeatures": {
+          "type": "object"
+        },
+        "waveformPreview": {
+          "type": "array"
+        },
+        "spectrumPreview": {
+          "type": "array"
+        },
+        "explanation": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "recommendations": {
+          "type": "array"
+        },
+        "isSavedReport": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "fileName",
+        "fileType",
+        "fileSize",
+        "duration",
+        "sourceType",
+        "classification",
+        "riskScore",
+        "analysisMode",
+        "modelStatus",
+        "extractedFeatures",
+        "explanation",
+        "recommendations",
+        "isSavedReport",
+        "createdAt"
+      ]
+    },
+    "SecurityAlert": {
+      "title": "SecurityAlert",
+      "description": "Security alert generated from suspicious, high-risk, or critical voice detections",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "riskLevel": {
+          "type": "string",
+          "enum": ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "under_investigation", "resolved"]
+        },
+        "investigationNotes": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "detectionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "riskScore": {
+          "type": "number"
+        },
+        "isRead": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "message",
+        "severity",
+        "detectionId",
+        "isRead",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user profile document isolated by userId"
+    },
+    "/users/{userId}/detections/{detectionId}": {
+      "schema": { "$ref": "#/entities/VoiceDetection" },
+      "description": "User-owned voice detection scan history and acoustic feature reports"
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/SecurityAlert" },
+      "description": "User-owned security alerts and investigation workflow records"
+    }
+  }
+}

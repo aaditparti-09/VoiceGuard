@@ -1,0 +1,6 @@
+{
+  "name": "VOICEGUARD AI",
+  "description": "Real-Time Voice Deepfake Detection & Prevention System — Detect, Assess, and Prevent AI-generated voice impersonation attacks.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
